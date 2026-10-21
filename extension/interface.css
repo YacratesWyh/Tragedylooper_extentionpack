@@ -1285,3 +1285,31 @@ body.loop-ui {
   font-size: 11.5px;
   padding: 2px 6px;
 }
+
+/* ===== v3.2.2 侧栏不再有内滚动：面板拉长，交给页面滚动 =====
+   左栏（side-panel）与右栏（report-panel）都取消 max-height / overflow / sticky；
+   原本在面板里自滚的区域（公开日志、frame、特殊规则）也全部展开。 */
+@media (min-width: 1001px) {
+  .loop-ui .side-panel,
+  .loop-ui .report-panel {
+    max-height: none !important;
+    overflow: visible !important;
+    height: auto !important;
+    align-self: start !important;
+    position: static !important;
+  }
+}
+
+.loop-ui .special-rules-scroll,
+.loop-ui .report-panel #frames,
+.loop-ui .report-panel #publicLog {
+  max-height: none !important;
+  overflow: visible !important;
+  padding-right: 0;
+}
+
+.loop-ui .desktop-note-panel,
+.loop-ui .desktop-note-panel .desktop-note-workspace {
+  max-height: none !important;
+  overflow: visible !important;
+}
