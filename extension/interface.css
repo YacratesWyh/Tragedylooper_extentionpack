@@ -1313,3 +1313,51 @@ body.loop-ui {
   max-height: none !important;
   overflow: visible !important;
 }
+
+/* ===== v3.2.3 「当前操作」与其它侧栏段落同级 =====
+   症状：action-panel 在左栏里带着自己的底色/边框，像套在里面的子 panel；
+   棋盘左侧还有一个黑色竖条（token-bank），像悬在页外的控件。
+   做法：action-panel 扁平化，只保留与兄弟段落一致的分隔线；
+   token-bank 改成书页边上的羊皮纸小签。 */
+
+.loop-ui .side-panel > #actionPanel,
+.loop-ui .side-panel > #actionPanel.action-panel {
+  background: transparent !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--loop-rule) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 14px 16px !important;
+  position: relative;
+}
+
+.loop-ui .side-panel > #actionPanel > .row {
+  margin: 0 0 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
+.loop-ui .side-panel > #actionPanel .status,
+.loop-ui .side-panel > #actionPanel #phasePrompt {
+  color: var(--loop-muted);
+}
+
+/* 棋盘左侧的 token bank：从黑色浮条改成贴在页边的羊皮纸小签 */
+.loop-ui .token-bank {
+  background: linear-gradient(180deg, #efe4cc, #e6d8bd) !important;
+  border: 1px solid rgba(164, 135, 79, .55) !important;
+  border-radius: 2px !important;
+  box-shadow: 0 6px 16px rgba(12, 8, 6, .35) !important;
+  left: -44px;
+}
+
+.loop-ui .token-bank span {
+  color: var(--loop-muted) !important;
+  letter-spacing: .02em;
+}
+
+.loop-ui .token-bank img {
+  filter: drop-shadow(0 1px 2px rgba(12, 8, 6, .35));
+}
