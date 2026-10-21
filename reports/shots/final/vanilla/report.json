@@ -1,0 +1,32 @@
+[
+  {
+    "file": "page.png",
+    "state": null,
+    "size": "1440x900",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [
+      "图片没加载出来："
+    ],
+    "lint": [
+      {
+        "rule": "sideStripe",
+        "label": "彩色单侧边线",
+        "count": 2,
+        "examples": [
+          "section#actionPanel.action-panel.mobile-drawer-panel「当前操作 轮到主人公 A 出牌：0/3。」（2px）",
+          "div.public-log-group-heading「第 1 天 · 主人公行动」（2px）"
+        ]
+      },
+      {
+        "rule": "contrastLow",
+        "label": "文字对比度不达标（正文低于 4.5:1，大字低于 3:1）",
+        "count": 2,
+        "examples": [
+          "div.desktop-note-scope「当前对局」（4.14:1）",
+          "span#desktopNoteStatus「已保存」（4.14:1）"
+        ]
+      }
+    ]
+  }
+]
