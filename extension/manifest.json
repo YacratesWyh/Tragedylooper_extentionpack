@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "惨剧轮回 — 彩窗书卷界面",
-  "version": "3.2.4",
+  "version": "3.2.5",
   "description": "Illuminated open-book interface mod with editable titles. Reuses original game artwork, data and controls. No bundled game assets.",
   "content_scripts": [
     {

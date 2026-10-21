@@ -1394,3 +1394,30 @@ body.loop-ui {
     color: var(--loop-ink);
   }
 }
+
+/* ===== v3.2.5 笔记面板背景必须包住整个列表 =====
+   原站在桌面上给 .side-panel .desktop-note-panel 设了 flex:1 0 260px / min-height:260px，
+   列表是脚本加载后动态撑开的；面板被锁在 260px 时背景只画到 260px，后面的行就露在深色页面上。
+   这里把笔记面板强制改成内容高度，背景随内容一起长。 */
+
+.loop-ui .side-panel > #desktopNotePanel,
+.loop-ui .side-panel > .desktop-note-panel {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+  background: var(--loop-paper) !important;
+}
+
+.loop-ui .side-panel > #desktopNotePanel .desktop-note-workspace {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* 其它同级段落也统一按内容高度排，不再参与拉伸 */
+.loop-ui .side-panel > section {
+  flex: 0 0 auto !important;
+}
