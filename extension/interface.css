@@ -1116,3 +1116,172 @@ body.loop-ui {
     radial-gradient(ellipse 80% 70% at 50% 40%, rgba(40, 28, 16, .16), rgba(16, 11, 7, .38) 76%),
     rgba(16, 11, 7, .32);
 }
+
+/* ===== v3.2 侧栏「对局笔记」排版修复 =====
+   症状：笔记表/保存快照按钮浮在标题上方并与标题重叠、引导文案是刺眼的青色、
+   下拉被裁切、面板底部出现内滚动条与截断。
+   做法：标题独占一行，动作收成右侧小工具；引导文案降为暖灰；
+   工作区改为纵向流，文本框给足高度；底部计数与状态一行对齐。 */
+
+.loop-ui .desktop-note-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 12px;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-header h2 {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: .05em;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.loop-ui .desktop-note-panel .note-table-launch-button-compact {
+  padding: 4px 9px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.loop-ui .desktop-note-panel .tiny-link-button {
+  padding: 3px 7px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.loop-ui .desktop-note-panel .character-note-entry-guide {
+  margin: 0;
+  color: var(--loop-muted);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-scope {
+  color: var(--loop-muted);
+}
+
+.loop-ui .desktop-note-panel .desktop-note-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+}
+
+.loop-ui .desktop-note-panel .note-inference-board {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loop-ui .desktop-note-panel .note-inference-row {
+  padding: 8px 9px;
+}
+
+.loop-ui .desktop-note-panel .note-inference-row-heading {
+  grid-template-columns: minmax(64px, .8fr) minmax(96px, 1.2fr);
+  gap: 6px;
+}
+
+.loop-ui .desktop-note-panel .note-snapshot-section {
+  margin: 0;
+}
+
+.loop-ui .desktop-note-panel .note-free-text-label {
+  margin: 2px 0 0;
+  color: var(--loop-muted);
+  font-size: 12px;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-textarea {
+  min-height: 116px;
+  padding: 8px 10px;
+  background: #f3ead6;
+  border: 1px solid #b29c74;
+  border-radius: 2px;
+  color: var(--loop-ink);
+  font-size: 13px;
+  line-height: 1.62;
+  resize: vertical;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(164, 135, 79, .30);
+  color: var(--loop-muted);
+  font-size: 12px;
+}
+
+/* 侧栏再宽一点，给标题与两个工具按钮留出呼吸 */
+@media (min-width: 1001px) {
+  .loop-ui > main {
+    grid-template-columns: 300px minmax(0, 1fr) 320px !important;
+  }
+  .loop-ui.loop-focus > main {
+    grid-template-columns: 300px minmax(0, 1fr) !important;
+  }
+}
+
+@media (min-width: 1650px) {
+  .loop-ui > main {
+    grid-template-columns: 320px minmax(0, 1fr) 360px !important;
+  }
+}
+
+/* ===== v3.2.1 侧栏笔记：整块自然展开，不在面板内出现「裁切 + 内滚动条」===== */
+.loop-ui .side-panel.stack {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+.loop-ui .desktop-note-panel {
+  flex: 0 0 auto;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-workspace {
+  flex: 0 0 auto;
+  max-height: none;
+  overflow: visible;
+}
+
+/* 标题与两个工具尽量同排；窄时整组换到下一行，绝不压住标题 */
+.loop-ui .desktop-note-panel .desktop-note-header {
+  gap: 6px;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-header h2 {
+  font-size: 16px;
+}
+
+.loop-ui .desktop-note-panel .desktop-note-header-actions {
+  flex-wrap: nowrap;
+  gap: 5px;
+}
+
+.loop-ui .desktop-note-panel .note-table-launch-button-compact {
+  font-size: 11.5px;
+  padding: 3px 6px;
+}
+
+.loop-ui .desktop-note-panel .tiny-link-button {
+  font-size: 11.5px;
+  padding: 2px 6px;
+}
