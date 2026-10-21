@@ -1,0 +1,1504 @@
+/* ============================================================================
+   palate · 书卷教堂 / 夜祷抄本 (illuminated codex in a candlelit chapel)
+   ----------------------------------------------------------------------------
+   只覆盖视觉：不改 DOM、不改交互、不引外网资源。
+   渲染时 <html>/<body> 带 .loop-ui（预览壳注入），所有规则以此为作用域。
+   设计北极星：一本摊在石制讲坛上的泥金抄本，两侧是彩窗漏进来的冷光，
+   只有书页被烛光照亮；界面本身退到阴影里，只剩金线、朱红 rubric 与纸。
+   ========================================================================== */
+
+/* --- 0. 调色与质感 ------------------------------------------------------- */
+:root {
+  /* 墨与纸：一条暖中性阶，没有纯白也没有纯黑 */
+  --pm-ink: #2e2620;
+  --pm-ink-soft: #46392f;
+  --pm-muted: #5c5044;
+  --pm-faint: #6f6252;
+  --pm-rubric: #8a3138;
+  --pm-rubric-deep: #571f24;
+  --pm-gilt: #a07f42;
+  --pm-gilt-lit: #cbaa63;
+  --pm-paper: #f3e9d6;
+  --pm-paper-hi: #fbf5e8;
+  --pm-paper-lo: #e8dabf;
+  --pm-rule: #cbb995;
+  --pm-stone: #16110e;
+  --pm-stone-hi: #241a15;
+
+  /* 彩窗只作为“光”出现：低饱和的青、玫瑰、紫 */
+  --pm-glass-blue: #42626e;
+  --pm-glass-teal: #356050;
+  --pm-glass-rose: #8c4756;
+  --pm-glass-violet: #5c4669;
+
+  --pm-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "Yu Mincho",
+    "SimSun", Georgia, serif;
+  --pm-latin: Georgia, "Times New Roman", "Noto Serif SC", serif;
+
+  /* 纸纤维：极淡的灰噪点，铺在纸面上当纤维 */
+  --pm-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='172' height='172'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.86' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='172' height='172' filter='url(%23n)' opacity='0.13'/%3E%3C/svg%3E");
+  /* 泥金抄本的卷草角饰（左上角，右下角旋转复用） */
+  --pm-corner: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 44 44'%3E%3Cg fill='none' stroke='%23a07f42' stroke-width='1.1'%3E%3Cpath d='M2 40V14A12 12 0 0 1 14 2h26' stroke-opacity='0.24'/%3E%3Cpath d='M6 34V16A10 10 0 0 1 16 6h18' stroke-opacity='0.55'/%3E%3C/g%3E%3Cpath d='M10 6.4l3.6 3.6-3.6 3.6L6.4 10z' fill='%23a07f42' fill-opacity='0.6'/%3E%3C/svg%3E");
+  /* 彩窗圆窗（只在页眉与书页边缘漏一点光） */
+  --pm-rose: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg fill='none' stroke='%23c9a961'%3E%3Ccircle cx='120' cy='120' r='112' stroke-opacity='0.26'/%3E%3Ccircle cx='120' cy='120' r='94' stroke-opacity='0.14'/%3E%3Ccircle cx='120' cy='120' r='70' stroke-opacity='0.24'/%3E%3Ccircle cx='120' cy='120' r='30' stroke-opacity='0.2'/%3E%3Cpath d='M120 8v224M8 120h224M41 41l158 158M199 41L41 199' stroke-opacity='0.13'/%3E%3C/g%3E%3Cg fill='%23c9a961' fill-opacity='0.09'%3E%3Ccircle cx='120' cy='50' r='9'/%3E%3Ccircle cx='190' cy='120' r='9'/%3E%3Ccircle cx='120' cy='190' r='9'/%3E%3Ccircle cx='50' cy='120' r='9'/%3E%3C/g%3E%3C/svg%3E");
+  /* 章节分隔线上的小菱形 */
+  --pm-lozenge: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath d='M5 0.6L9.4 5 5 9.4 0.6 5z' fill='%23a07f42' fill-opacity='0.85'/%3E%3C/svg%3E");
+}
+
+/* --- 1. 教堂：石地、彩窗冷光、烛光，以及压暗的四边 --------------------- */
+body.loop-ui,
+body {
+  background-color: var(--pm-stone);
+  background-image:
+    radial-gradient(760px 520px at 4% -10%, rgba(74, 108, 122, 0.26), transparent 62%),
+    radial-gradient(720px 480px at 97% -8%, rgba(140, 71, 86, 0.2), transparent 64%),
+    radial-gradient(1100px 720px at 50% -6%, rgba(201, 169, 97, 0.14), transparent 66%),
+    radial-gradient(900px 620px at 50% 112%, rgba(6, 4, 3, 0.72), transparent 72%),
+    linear-gradient(180deg, #1b1512 0%, #15100d 44%, #0e0a08 100%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: var(--pm-ink);
+  font-family: var(--pm-serif);
+}
+
+/* 四角压暗：像从教堂中殿看过去，视线只留在书上 */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(closest-side at 50% 46%, transparent 48%, rgba(5, 3, 2, 0.5) 100%);
+}
+
+:is(.loop-ui, body) main,
+:is(.loop-ui, body) > main {
+  position: relative;
+  z-index: 1;
+  gap: 20px;
+}
+
+/* --- 2. 页眉：鎏金檐口 --------------------------------------------------- */
+:is(.loop-ui, body) header {
+  overflow: hidden;
+  background:
+    radial-gradient(680px 46px at 78% -8%, rgba(201, 169, 97, 0.18), transparent 70%),
+    linear-gradient(180deg, rgba(201, 169, 97, 0.09), transparent 46%),
+    linear-gradient(180deg, #241a14 0%, #1a1310 100%);
+  border-bottom: 1px solid rgba(160, 127, 66, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(201, 169, 97, 0.18),
+    0 12px 26px -20px rgba(0, 0, 0, 0.9);
+}
+
+/* 页眉右端漏一块彩窗圆窗 */
+:is(.loop-ui, body) header::after {
+  content: "";
+  position: absolute;
+  right: -30px;
+  top: -150px;
+  width: 268px;
+  height: 268px;
+  pointer-events: none;
+  background: var(--pm-rose) no-repeat center / contain;
+  opacity: 0.4;
+}
+
+:is(.loop-ui, body) header .nav {
+  color: #c2ab86;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  font-family: var(--pm-serif);
+}
+
+:is(.loop-ui, body) header .nav:hover {
+  color: #f4e6c9;
+}
+
+:is(.loop-ui, body) header .nav:disabled {
+  color: #7b6f60;
+  letter-spacing: 0.1em;
+}
+
+:is(.loop-ui, body) header #musicPlayer {
+  color: #a9957a;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+:is(.loop-ui, body) #musicToggle {
+  color: #e6d3ac;
+  border: 1px solid rgba(160, 127, 66, 0.5);
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(201, 169, 97, 0.16), rgba(60, 45, 30, 0.4));
+}
+
+/* 标题：印刷体书名页，字距拉开，靠一点烛光晕出边；
+   下面一道书眉线把书名和书页分开 */
+:is(.loop-ui, body) .header-title {
+  padding: 6px 4px 16px;
+  border-bottom: 1px solid rgba(160, 127, 66, 0.34);
+}
+
+:is(.loop-ui, body) .header-title h1 {
+  font-family: var(--pm-serif);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.18em;
+  color: #f4e7ce;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 0 28px rgba(201, 169, 97, 0.2);
+}
+
+:is(.loop-ui, body) .header-title .status {
+  color: #a08c72;
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+/* 书名实际由预览壳渲染在 .loop-intro 里，这里把字号与会话页对齐 */
+:is(.loop-ui, body) .loop-intro h1 {
+  font-family: var(--pm-serif);
+  font-size: 26px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.16em;
+  color: #f4e7ce;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.55),
+    0 0 26px rgba(201, 169, 97, 0.22);
+}
+
+:is(.loop-ui, body) h1, :is(.loop-ui, body) h2, :is(.loop-ui, body) h3, :is(.loop-ui, body) h4 {
+  font-family: var(--pm-serif);
+  font-weight: 600;
+}
+
+/* --- 3. 摊开的书：书脊、鎏金页边、烛光落在纸面 ------------------------- */
+:is(.loop-ui, body) .play-area {
+  border: 1px solid rgba(150, 116, 58, 0.72);
+  border-radius: 2px;
+  background-color: var(--pm-paper);
+  background-image:
+    /* 左页钉口（鎏金页边） */
+    linear-gradient(90deg,
+      rgba(160, 127, 66, 0.5) 0 1px,
+      rgba(255, 250, 238, 0.55) 1px 2px,
+      rgba(160, 127, 66, 0.14) 2px 3px,
+      transparent 3px),
+    /* 右页钉口 */
+    linear-gradient(270deg,
+      rgba(160, 127, 66, 0.5) 0 1px,
+      rgba(255, 250, 238, 0.55) 1px 2px,
+      rgba(160, 127, 66, 0.14) 2px 3px,
+      transparent 3px),
+    /* 中缝：书脊的深折 */
+    linear-gradient(90deg,
+      transparent calc(var(--loop-spine, 50%) - 28px),
+      rgba(120, 94, 60, 0.1) calc(var(--loop-spine, 50%) - 7px),
+      rgba(94, 68, 38, 0.32) var(--loop-spine, 50%),
+      rgba(120, 94, 60, 0.1) calc(var(--loop-spine, 50%) + 7px),
+      transparent calc(var(--loop-spine, 50%) + 28px)),
+    /* 两侧彩窗落在纸上的冷光 */
+    radial-gradient(300px 220px at 0% 0%, rgba(74, 108, 122, 0.16), transparent 72%),
+    radial-gradient(280px 200px at 100% 1%, rgba(140, 71, 86, 0.13), transparent 72%),
+    /* 顶部的烛光 */
+    radial-gradient(120% 64% at 50% -4%, rgba(255, 251, 238, 0.72), transparent 62%),
+    var(--pm-grain);
+  background-size: auto, auto, auto, auto, auto, auto, 172px 172px;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, repeat;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 253, 246, 0.65),
+    inset 9px 0 14px -10px rgba(84, 58, 28, 0.4),
+    inset -9px 0 14px -10px rgba(84, 58, 28, 0.4),
+    0 30px 64px -34px rgba(6, 4, 3, 0.95),
+    0 1px 0 rgba(160, 127, 66, 0.28);
+}
+
+/* 内框：双线里的一道细金线（泥金抄本的版心） */
+:is(.loop-ui, body) .play-area::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  pointer-events: none;
+  border: 1px solid rgba(160, 127, 66, 0.3);
+  border-radius: 1px;
+  box-shadow: inset 0 0 0 1px rgba(255, 252, 244, 0.35);
+}
+
+/* 书签丝带：底部中缝那一点朱红 */
+:is(.loop-ui, body) .play-area::after {
+  content: "";
+  position: absolute;
+  bottom: 9px;
+  left: calc(var(--loop-spine, 50%) - 3px);
+  width: 6px;
+  height: 6px;
+  border: 1px solid #8a6a3e;
+  background: var(--pm-gilt-lit);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+/* --- 4. 左右两页：纸、金框、章节 rubric -------------------------------- */
+:is(.loop-ui, body) .side-panel,
+:is(.loop-ui, body) .report-panel {
+  position: relative;
+  background-color: var(--pm-paper);
+  background-image:
+    var(--pm-grain),
+    linear-gradient(178deg, #f8f0e0 0%, #f2e8d5 46%, #e9dbbf 100%);
+  background-size: 172px 172px, auto;
+  background-repeat: repeat, no-repeat;
+  border: 1px solid rgba(150, 116, 58, 0.55);
+  border-radius: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 252, 244, 0.5),
+    0 24px 50px -30px rgba(6, 4, 3, 0.9),
+    0 1px 0 rgba(160, 127, 66, 0.3);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+/* 版心细框 */
+:is(.loop-ui, body) .side-panel::before,
+:is(.loop-ui, body) .report-panel::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(160, 127, 66, 0.2);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+:is(.loop-ui, body) .side-panel > section,
+:is(.loop-ui, body) .report-panel > section {
+  position: relative;
+  padding: 16px 20px 20px;
+  border-bottom: 0;
+  color: var(--pm-ink);
+}
+
+/* 章节之间：一道两端收尖的金线，中间嵌一枚小菱形 */
+:is(.loop-ui, body) .side-panel > section + section::before,
+:is(.loop-ui, body) .report-panel > section + section::before {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  top: -16px;
+  height: 9px;
+  background:
+    var(--pm-lozenge) no-repeat center center / 9px 9px,
+    linear-gradient(90deg,
+      transparent 0,
+      rgba(160, 127, 66, 0.38) 18%,
+      rgba(160, 127, 66, 0.38) 82%,
+      transparent 100%) no-repeat center center / 100% 1px;
+  pointer-events: none;
+}
+
+/* rubric 标题：朱红、字距、前面一枚小金菱 */
+:is(.loop-ui, body) .side-panel h2,
+:is(.loop-ui, body) .report-panel h2,
+:is(.loop-ui, body) .board-section > .row h2,
+:is(.loop-ui, body) #handPanel h2 {
+  color: var(--pm-rubric);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.5;
+  letter-spacing: 0.14em;
+  margin: 0 0 10px;
+  white-space: nowrap;
+}
+
+:is(.loop-ui, body) .side-panel > section > .row h2,
+:is(.loop-ui, body) .report-panel > section > .row h2 {
+  margin-bottom: 0;
+}
+
+:is(.loop-ui, body) .side-panel h2::before,
+:is(.loop-ui, body) .report-panel h2::before,
+:is(.loop-ui, body) .board-section > .row h2::before,
+:is(.loop-ui, body) #handPanel h2::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 10px;
+  vertical-align: 2px;
+  background: var(--pm-gilt);
+  transform: rotate(45deg);
+  box-shadow: 0 0 0 1px rgba(255, 252, 244, 0.6);
+}
+
+:is(.loop-ui, body) .side-panel h3,
+:is(.loop-ui, body) .report-panel h3 {
+  color: var(--pm-ink-soft);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* 小字：体例统一到 13px，参考系不再碎 */
+:is(.loop-ui, body) .side-panel .status,
+:is(.loop-ui, body) .report-panel .status,
+:is(.loop-ui, body) .side-panel .preview-hint,
+:is(.loop-ui, body) .report-panel .preview-hint,
+:is(.loop-ui, body) .desktop-note-scope,
+:is(.loop-ui, body) .desktop-note-footer,
+:is(.loop-ui, body) #desktopNoteStatus,
+:is(.loop-ui, body) #desktopNoteCount,
+:is(.loop-ui, body) .note-inference-empty,
+:is(.loop-ui, body) .note-inference-note,
+:is(.loop-ui, body) .public-log-compact-group .public-log-group-heading,
+:is(.loop-ui, body) .preview-log-time,
+:is(.loop-ui, body) .meta span,
+:is(.loop-ui, body) .note-snapshot-heading .tiny-link-button,
+:is(.loop-ui, body) .side-panel .tiny-link-button {
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: 0.02em;
+}
+
+/* 对比度：这两个灰字原来 4.14:1，压到墨色一侧 */
+:is(.loop-ui, body) .desktop-note-scope {
+  color: var(--pm-muted);
+  letter-spacing: 0.12em;
+  margin: 4px 0 10px;
+}
+
+:is(.loop-ui, body) #desktopNoteStatus,
+:is(.loop-ui, body) .desktop-note-footer {
+  color: var(--pm-muted);
+}
+
+:is(.loop-ui, body) #desktopNoteCount {
+  color: var(--pm-rubric);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* --- 5. 控件：黄铜与朱印 ------------------------------------------------ */
+:is(.loop-ui, body) .side-panel :is(button, select, input, textarea),
+:is(.loop-ui, body) .report-panel :is(button, select, input, textarea) {
+  font-family: var(--pm-serif);
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  border: 1px solid rgba(150, 116, 58, 0.6);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fdf8ec, #f3e8d2);
+  color: var(--pm-ink);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(90, 64, 30, 0.08);
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+}
+
+:is(.loop-ui, body) .side-panel button:hover:enabled,
+:is(.loop-ui, body) .report-panel button:hover:enabled {
+  background: linear-gradient(180deg, #fffdf6, #f8efdc);
+  border-color: var(--pm-gilt);
+  color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) .side-panel button:disabled,
+:is(.loop-ui, body) .report-panel button:disabled {
+  background: rgba(243, 233, 214, 0.6);
+  color: #7b6f60;
+}
+
+/* 朱印：主操作 */
+:is(.loop-ui, body) .side-panel #startButton {
+  background:
+    radial-gradient(120% 120% at 50% -20%, rgba(255, 226, 190, 0.28), transparent 60%),
+    linear-gradient(180deg, #8b3a41, #65252b);
+  border: 1px solid #4c191e;
+  color: #fdf3e0;
+  letter-spacing: 0.1em;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 226, 196, 0.34),
+    inset 0 0 0 1px rgba(201, 169, 97, 0.22),
+    0 8px 18px -10px rgba(52, 12, 16, 0.85);
+}
+
+:is(.loop-ui, body) .side-panel #startButton:hover:enabled {
+  background:
+    radial-gradient(120% 120% at 50% -20%, rgba(255, 236, 208, 0.34), transparent 60%),
+    linear-gradient(180deg, #9a4149, #712a30);
+  color: #fff8ea;
+}
+
+:is(.loop-ui, body) .side-panel #startButton small {
+  border-left-color: rgba(255, 232, 198, 0.4);
+  color: rgba(255, 236, 208, 0.85);
+  font-size: 13px;
+}
+
+/* 投降：只用朱红描边，别抢主操作的注意力 */
+:is(.loop-ui, body) .side-panel #surrenderTopButton {
+  background: transparent;
+  border-color: rgba(138, 49, 56, 0.42);
+  color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) .side-panel > .sidebar-utility-button,
+:is(.loop-ui, body) .sidebar-utility-button {
+  background: rgba(255, 252, 244, 0.55);
+  border-color: rgba(150, 116, 58, 0.5);
+  color: var(--pm-ink-soft);
+  letter-spacing: 0.12em;
+  min-height: 40px;
+}
+
+:is(.loop-ui, body) .side-panel > .sidebar-utility-button:hover,
+:is(.loop-ui, body) .sidebar-utility-button:hover {
+  border-color: var(--pm-gilt);
+  color: var(--pm-rubric);
+}
+
+/* 入口链接（笔记表 / 查看）做成抄本边注 */
+:is(.loop-ui, body) .report-panel button,
+:is(.loop-ui, body) .side-panel .tiny-link-button {
+  background: rgba(255, 252, 244, 0.6);
+}
+
+:is(.loop-ui, body) .side-panel .tiny-link-button,
+:is(.loop-ui, body) .report-panel .tiny-link-button {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--pm-rubric);
+  border-color: rgba(150, 116, 58, 0.45);
+}
+
+/* 当前操作：不是侧边的彩色条，而是一块略深的版心 */
+:is(.loop-ui, body) #actionPanel,
+:is(.loop-ui, body) #actionPanel.active {
+  border: 1px solid rgba(150, 116, 58, 0.45);
+  border-left-width: 1px;
+  border-radius: 2px;
+  background:
+    radial-gradient(120% 140% at 8% -20%, rgba(201, 169, 97, 0.16), transparent 62%),
+    linear-gradient(180deg, #f7eedb, #efe2c8);
+  box-shadow: inset 0 0 0 1px rgba(255, 252, 244, 0.55);
+}
+
+:is(.loop-ui, body) #actionPanel .status {
+  color: var(--pm-ink-soft);
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+/* --- 6. 对局笔记面板 ---------------------------------------------------- */
+:is(.loop-ui, body) #desktopNotePanel {
+  background: linear-gradient(180deg, rgba(255, 252, 244, 0.6), rgba(245, 236, 217, 0.5));
+  border-top: 1px solid rgba(160, 127, 66, 0.32);
+}
+
+:is(.loop-ui, body) .note-inference-section {
+  background: transparent;
+  border: 1px solid rgba(160, 127, 66, 0.3);
+  border-radius: 2px;
+  margin-bottom: 12px;
+}
+
+:is(.loop-ui, body) .side-panel .note-inference-section h3 {
+  padding: 8px 12px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--pm-rubric);
+  background: rgba(235, 226, 205, 0.55);
+  border-bottom: 1px solid rgba(160, 127, 66, 0.28);
+  font-weight: 600;
+}
+
+:is(.loop-ui, body) .side-panel .note-inference-row {
+  border: 0;
+  border-bottom: 1px solid rgba(160, 127, 66, 0.2);
+  border-radius: 0;
+  margin: 0;
+  padding: 12px;
+  background: transparent;
+}
+
+:is(.loop-ui, body) .side-panel .note-inference-row:last-child {
+  border-bottom: 0;
+}
+
+:is(.loop-ui, body) .side-panel .note-inference-row-heading strong {
+  font-size: 14px;
+  color: var(--pm-ink);
+  letter-spacing: 0.06em;
+}
+
+:is(.loop-ui, body) .side-panel .note-inference-select {
+  font-size: 13px;
+  min-height: 34px;
+  color: var(--pm-ink-soft);
+  background: rgba(255, 252, 244, 0.8);
+}
+
+/* 推理标记：✓ 可能 / × 排除 / ? 怀疑，用彩窗的三种冷色 */
+:is(.loop-ui, body) .note-inference-chip {
+  font-size: 13px;
+  padding: 4px 9px;
+  border-radius: 2px;
+  border: 1px solid rgba(150, 116, 58, 0.5);
+  background: rgba(255, 252, 244, 0.8);
+  color: var(--pm-ink-soft);
+}
+
+:is(.loop-ui, body) .note-inference-chip:hover {
+  border-color: var(--pm-gilt);
+  color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) .note-inference-chip-possible,
+:is(.loop-ui, body) .note-inference-chip.selected {
+  background: #e4ece4;
+  border-color: #6d8a78;
+  color: #2f5042;
+}
+
+:is(.loop-ui, body) .note-inference-chip-excluded {
+  background: #eee1da;
+  border-color: #a8807a;
+  color: #6b3a34;
+}
+
+:is(.loop-ui, body) .note-inference-chip-suspected {
+  background: #f4ead0;
+  border-color: var(--pm-gilt);
+  color: #6a4c16;
+}
+
+:is(.loop-ui, body) .note-inference-empty {
+  color: var(--pm-faint);
+  font-style: italic;
+}
+
+:is(.loop-ui, body) label[for="desktopNoteText"] {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--pm-muted);
+}
+
+:is(.loop-ui, body) #desktopNoteText {
+  font-family: var(--pm-serif);
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--pm-ink);
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0 29px,
+      rgba(160, 127, 66, 0.18) 29px 30px),
+    rgba(255, 252, 244, 0.7);
+  border: 1px solid rgba(150, 116, 58, 0.45);
+  caret-color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) #desktopNoteText::placeholder {
+  color: #8b7d6a;
+}
+
+:is(.loop-ui, body) #desktopNoteText:focus {
+  outline: 2px solid rgba(160, 127, 66, 0.55);
+  outline-offset: 1px;
+  border-color: var(--pm-gilt);
+}
+
+/* --- 7. 版图：彩窗下的四块场地 ----------------------------------------- */
+:is(.loop-ui, body) #board {
+  gap: 18px;
+}
+
+:is(.loop-ui, body) #board > .location {
+  border: 1px solid rgba(120, 90, 46, 0.75);
+  border-radius: 2px;
+  background-color: #17120f;
+  box-shadow:
+    0 16px 30px -22px rgba(8, 5, 3, 0.95),
+    inset 0 0 0 1px rgba(255, 250, 238, 0.16),
+    inset 0 14px 20px -18px rgba(255, 226, 170, 0.35);
+}
+
+/* 每块场地都像一页被烛光从上照到的插图：顶光 + 底部收暗 */
+:is(.loop-ui, body) #board > .location::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: 1px;
+  background:
+    radial-gradient(120% 62% at 50% -12%, rgba(255, 214, 150, 0.18), transparent 58%),
+    linear-gradient(180deg, transparent 58%, rgba(18, 10, 5, 0.4));
+}
+
+/* 角色卡：像钉在版图上的小圣像，米色卡纸 + 细金框 */
+:is(.loop-ui, body) .char {
+  padding: 3px;
+  border: 1px solid rgba(140, 108, 56, 0.85);
+  border-radius: 1px;
+  background: linear-gradient(180deg, #fcf7ec, #efe4cd);
+  box-shadow:
+    0 10px 20px -14px rgba(10, 6, 3, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.55);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+:is(.loop-ui, body) .char > img {
+  border-radius: 0;
+}
+
+:is(.loop-ui, body) .char:hover,
+:is(.loop-ui, body) .char:focus-within {
+  border-color: var(--pm-gilt-lit);
+  box-shadow:
+    0 14px 26px -14px rgba(10, 6, 3, 0.95),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6),
+    0 0 0 1px rgba(203, 170, 99, 0.9),
+    0 0 22px rgba(201, 169, 97, 0.38);
+}
+
+/* --- 8. 讲坛卷带：当前阶段 --------------------------------------------- */
+:is(.loop-ui, body) .phase-banner {
+  position: relative;
+  padding: 12px 16px;
+  min-height: 48px;
+  border: 1px solid #2b1215;
+  border-radius: 2px;
+  background:
+    linear-gradient(180deg, rgba(255, 236, 206, 0.07), transparent 46%),
+    linear-gradient(180deg, #4c2529 0%, #38181c 100%);
+  color: #f7ebd5;
+  box-shadow:
+    inset 0 0 0 1px rgba(201, 169, 97, 0.38),
+    0 10px 22px -18px rgba(0, 0, 0, 0.9);
+}
+
+:is(.loop-ui, body) .phase-banner .phase-main > strong {
+  font-family: var(--pm-serif);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: #f9efdb;
+}
+
+:is(.loop-ui, body) .phase-banner .phase-today-incident {
+  color: #e6c893 !important;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+:is(.loop-ui, body) .phase-banner .phase-pin {
+  filter: drop-shadow(0 0 6px rgba(201, 169, 97, 0.45));
+}
+
+:is(.loop-ui, body) .phase-banner .board-counter-toggle {
+  background: rgba(255, 244, 224, 0.08);
+  border: 1px solid rgba(201, 169, 97, 0.5);
+  color: #f2e3c8;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+:is(.loop-ui, body) .phase-banner .board-counter-toggle:hover {
+  background: rgba(255, 244, 224, 0.16);
+}
+
+/* --- 9. 行动牌托盘：书页上的卡座 --------------------------------------- */
+:is(.loop-ui, body) #handPanel.mobile-drawer-panel,
+:is(.loop-ui, body) #handPanel {
+  --ink: #2e2620;
+  --text: #2e2620;
+  --muted: #5c5044;
+  --line: rgba(150, 116, 58, 0.5);
+  --panel: #f7efdf;
+  --accent: #8a3138;
+  --accent-soft: #efe3cb;
+  position: relative;
+  padding: 16px 20px 20px;
+  border: 1px solid rgba(150, 116, 58, 0.55);
+  border-radius: 2px;
+  background-color: var(--pm-paper);
+  background-image:
+    var(--pm-grain),
+    linear-gradient(180deg, #f8f0e0, #eee1c6);
+  background-size: 172px 172px, auto;
+  background-repeat: repeat, no-repeat;
+  color: var(--pm-ink) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 252, 244, 0.6),
+    0 16px 34px -28px rgba(6, 4, 3, 0.9);
+}
+
+:is(.loop-ui, body) #handPanel .row {
+  margin-bottom: 14px;
+}
+
+:is(.loop-ui, body) #handPanel h2 {
+  margin-bottom: 0;
+  white-space: nowrap;
+}
+
+:is(.loop-ui, body) #handPanel .status {
+  color: var(--pm-muted);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+}
+
+:is(.loop-ui, body) #handPanel .card-seat-row {
+  border: 1px solid rgba(160, 127, 66, 0.32);
+  border-radius: 2px;
+  background: rgba(255, 252, 244, 0.4);
+  padding: 10px;
+}
+
+:is(.loop-ui, body) #handPanel .seat-label {
+  background: rgba(255, 252, 244, 0.62);
+  border: 1px solid rgba(160, 127, 66, 0.3);
+  border-radius: 2px;
+  color: var(--pm-rubric);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+:is(.loop-ui, body) #handPanel .seat-avatar img {
+  filter: drop-shadow(0 2px 4px rgba(90, 62, 30, 0.35));
+}
+
+/* 牌：一张张摊在纸上的卡纸，而不是深色面板里的缩略图。
+   flex:1 让八张牌均分卡座宽度，不会把最后一张切在边上 */
+:is(.loop-ui, body) #handPanel .action-card {
+  flex: 1 1 0;
+  min-width: 58px;
+  max-width: 84px;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid rgba(140, 108, 56, 0.7);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fdf9ef, #f2e7d0);
+  box-shadow:
+    0 8px 16px -12px rgba(10, 6, 3, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+:is(.loop-ui, body) #handPanel .action-card img {
+  border-radius: 0;
+  background: #2a1518;
+}
+
+:is(.loop-ui, body) #handPanel .action-card small {
+  font-family: var(--pm-serif);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--pm-ink-soft);
+  letter-spacing: 0;
+  padding: 3px 0 2px;
+}
+
+:is(.loop-ui, body) #handPanel .action-card:hover {
+  border-color: var(--pm-gilt-lit);
+  box-shadow:
+    0 14px 24px -14px rgba(10, 6, 3, 0.9),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.7),
+    0 0 0 1px rgba(203, 170, 99, 0.7);
+}
+
+/* 选中的牌：朱红火漆圈 */
+:is(.loop-ui, body) #handPanel .action-card.selected {
+  border-color: var(--pm-rubric);
+  box-shadow:
+    0 16px 26px -14px rgba(10, 6, 3, 0.9),
+    0 0 0 2px rgba(138, 49, 56, 0.55),
+    0 0 20px rgba(138, 49, 56, 0.28);
+}
+
+:is(.loop-ui, body) #handPanel .action-card.disabled {
+  opacity: 0.42;
+  filter: grayscale(1) contrast(0.9);
+}
+
+:is(.loop-ui, body) #handPanel .card-hand + .row .status,
+:is(.loop-ui, body) #handPanel .row.status {
+  color: var(--pm-muted);
+  font-size: 13px;
+}
+
+/* --- 10. 公开信息 / 特殊规则 / 公开日志 -------------------------------- */
+:is(.loop-ui, body) #publicInfoPanel .meta {
+  gap: 0;
+}
+
+:is(.loop-ui, body) #publicInfoPanel .meta > div {
+  border: 0;
+  border-bottom: 1px solid rgba(160, 127, 66, 0.26);
+  border-radius: 0;
+  background: transparent;
+  padding: 9px 0 11px;
+}
+
+:is(.loop-ui, body) #publicInfoPanel .meta span {
+  color: var(--pm-muted);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+}
+
+:is(.loop-ui, body) #publicInfoPanel .meta strong {
+  color: var(--pm-ink);
+  font-family: var(--pm-serif);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+:is(.loop-ui, body) #publicInfoPanel .public-events-meta strong {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 14px;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--pm-ink-soft);
+  padding: 3px 0;
+}
+
+:is(.loop-ui, body) #publicInfoPanel .public-events-meta strong::before {
+  content: "";
+  flex: 0 0 5px;
+  width: 5px;
+  height: 5px;
+  align-self: center;
+  background: rgba(160, 127, 66, 0.9);
+  transform: rotate(45deg);
+}
+
+/* 日志：不再是一条彩色左边线，而是一段带火漆印的编年 */
+:is(.loop-ui, body) .report-panel .public-log-compact-group,
+:is(.loop-ui, body) .report-panel .public-log-group {
+  border: 0;
+  border-top: 1px solid rgba(160, 127, 66, 0.4);
+  border-radius: 0;
+  background: transparent;
+}
+
+:is(.loop-ui, body) .report-panel .public-log-compact-group .public-log-group-heading {
+  background: transparent;
+  border: 0;
+  border-left-width: 0;
+  padding: 8px 0;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--log-phase-color);
+}
+
+:is(.loop-ui, body) .public-log-group-heading::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 10px;
+  vertical-align: 1px;
+  background: var(--log-phase-color);
+  transform: rotate(45deg);
+  opacity: 0.92;
+}
+
+:is(.loop-ui, body) .report-panel .public-log-compact-group .public-log-dialog-entry {
+  padding: 4px 0 12px 16px;
+  border-bottom: 0;
+  background: transparent;
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--pm-ink-soft);
+}
+
+:is(.loop-ui, body) .log-entry {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(160, 127, 66, 0.24);
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--pm-ink-soft);
+}
+
+:is(.loop-ui, body) .preview-log-time {
+  color: var(--pm-faint);
+  font-family: var(--pm-latin);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+}
+
+:is(.loop-ui, body) .log-entry strong {
+  color: var(--pm-ink);
+  letter-spacing: 0.06em;
+}
+
+/* 三个 token 从霓虹改成彩窗上的三种玻璃色，仍可区分 */
+:is(.loop-ui, body) .public-log-token.token-goodwill { color: #2f6355; }
+:is(.loop-ui, body) .public-log-token.token-intrigue { color: #7d5a15; }
+:is(.loop-ui, body) .public-log-token.token-paranoia { color: #5b4270; }
+
+/* 阶段色：原来是一组霓虹，改成玻璃色 */
+:is(.loop-ui, body) .phase-morning { --log-phase-color: #2f6265; }
+:is(.loop-ui, body) .phase-cards { --log-phase-color: #7b5a1c; }
+:is(.loop-ui, body) .phase-mastermind { --log-phase-color: #8a3b3f; }
+:is(.loop-ui, body) .phase-protagonist { --log-phase-color: #3b5a7a; }
+:is(.loop-ui, body) .phase-incident { --log-phase-color: #5a4373; }
+:is(.loop-ui, body) .phase-night { --log-phase-color: #35604a; }
+:is(.loop-ui, body) .phase-loop { --log-phase-color: #5c5348; }
+:is(.loop-ui, body) .phase-final { --log-phase-color: #7a2e34; }
+
+/* --- 11. 弹窗：一页泥金标题页 ------------------------------------------ */
+:is(.loop-ui, body) .choice-dialog-overlay {
+  background:
+    radial-gradient(ellipse 72% 64% at 50% 40%, rgba(32, 22, 14, 0.66), rgba(8, 6, 4, 0.93) 78%);
+  backdrop-filter: blur(3px) saturate(0.85);
+}
+
+:is(.loop-ui, body) .choice-dialog {
+  position: relative;
+  color: var(--pm-ink);
+  border: 1px solid rgba(140, 104, 50, 0.85);
+  border-radius: 2px;
+  background-color: var(--pm-paper);
+  background-image:
+    var(--pm-grain),
+    linear-gradient(178deg, #fcf6e8 0%, #f3e8d1 58%, #e9dbbf 100%);
+  background-size: 172px 172px, auto;
+  background-repeat: repeat, no-repeat;
+  outline: 1px solid rgba(160, 127, 66, 0.35);
+  outline-offset: 5px;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 252, 244, 0.55),
+    0 34px 74px -34px rgba(4, 3, 2, 0.98);
+}
+
+/* 卷草角饰：左上原样，右下转 180° 复用同一张 */
+:is(.loop-ui, body) .choice-dialog::before,
+:is(.loop-ui, body) .choice-dialog::after {
+  content: "";
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  pointer-events: none;
+  background: var(--pm-corner) no-repeat center / contain;
+  opacity: 0.85;
+  z-index: 2;
+}
+
+:is(.loop-ui, body) .choice-dialog::before {
+  left: 10px;
+  top: 10px;
+}
+
+:is(.loop-ui, body) .choice-dialog::after {
+  right: 10px;
+  bottom: 10px;
+  transform: rotate(180deg);
+}
+
+:is(.loop-ui, body) .choice-dialog h2 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--pm-rubric);
+  line-height: 1.5;
+}
+
+:is(.loop-ui, body) .choice-dialog p {
+  color: var(--pm-muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+:is(.loop-ui, body) .choice-dialog :is(strong, b) {
+  color: var(--pm-ink);
+}
+
+:is(.loop-ui, body) .choice-dialog :is(input, select, textarea) {
+  font-family: var(--pm-serif);
+  font-size: 14px;
+  border: 1px solid rgba(150, 116, 58, 0.55);
+  border-radius: 2px;
+  background: rgba(255, 252, 244, 0.85);
+  color: var(--pm-ink);
+}
+
+:is(.loop-ui, body) .choice-dialog :is(input, select, textarea):focus {
+  border-color: var(--pm-gilt);
+  outline: 2px solid rgba(160, 127, 66, 0.4);
+  outline-offset: 1px;
+}
+
+:is(.loop-ui, body) .choice-dialog button,
+:is(.loop-ui, body) .choice-dialog .button {
+  font-family: var(--pm-serif);
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  border: 1px solid rgba(150, 116, 58, 0.6);
+  border-radius: 2px;
+  background: linear-gradient(180deg, #fdf8ec, #f2e7d0);
+  color: var(--pm-ink);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+:is(.loop-ui, body) .choice-dialog button:hover,
+:is(.loop-ui, body) .choice-dialog .button:hover {
+  border-color: var(--pm-gilt);
+  color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) .choice-dialog .button.primary {
+  background: linear-gradient(180deg, #8b3a41, #65252b);
+  border-color: #4c191e;
+  color: #fdf3e0;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 226, 196, 0.32),
+    inset 0 0 0 1px rgba(201, 169, 97, 0.22);
+}
+
+:is(.loop-ui, body) .dialog-icon-button {
+  border-radius: 2px;
+  border: 1px solid rgba(150, 116, 58, 0.55);
+  background: rgba(255, 252, 244, 0.7);
+  color: var(--pm-rubric);
+}
+
+/* 对局笔记 */
+:is(.loop-ui, body) .note-dialog .note-dialog-header {
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(160, 127, 66, 0.4);
+}
+
+:is(.loop-ui, body) .note-dialog .note-dialog-header p {
+  margin-top: 6px;
+}
+
+:is(.loop-ui, body) .note-dialog .character-note-entry-guide {
+  color: var(--pm-muted);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+:is(.loop-ui, body) .note-dialog .note-table-launch-button {
+  background: linear-gradient(180deg, #8b3a41, #65252b);
+  border-color: #4c191e;
+  color: #fdf3e0;
+  letter-spacing: 0.1em;
+}
+
+:is(.loop-ui, body) .note-dialog .note-table-new-badge {
+  background: var(--pm-gilt-lit);
+  color: #2a1c14;
+  letter-spacing: 0.08em;
+}
+
+:is(.loop-ui, body) .note-dialog .note-storage-scope {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--pm-muted);
+  border-color: rgba(160, 127, 66, 0.4);
+}
+
+:is(.loop-ui, body) .note-dialog .note-workspace {
+  border: 1px solid rgba(160, 127, 66, 0.3);
+  border-radius: 2px;
+  background: rgba(255, 252, 244, 0.55);
+  padding: 16px;
+}
+
+:is(.loop-ui, body) .note-dialog .note-inference-section {
+  background: transparent;
+  border: 1px solid rgba(160, 127, 66, 0.3);
+  border-radius: 2px;
+}
+
+:is(.loop-ui, body) .note-dialog .note-inference-section h3 {
+  padding: 9px 12px;
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--pm-rubric);
+  background: rgba(235, 226, 205, 0.5);
+  border-bottom: 1px solid rgba(160, 127, 66, 0.26);
+}
+
+:is(.loop-ui, body) .note-dialog .note-inference-row {
+  border: 0;
+  border-bottom: 1px solid rgba(160, 127, 66, 0.18);
+  border-radius: 0;
+  margin: 0;
+  padding: 12px;
+}
+
+:is(.loop-ui, body) .note-dialog .note-inference-row:last-child {
+  border-bottom: 0;
+}
+
+:is(.loop-ui, body) .note-dialog .note-inference-row-heading strong {
+  font-size: 14px;
+  color: var(--pm-ink);
+  letter-spacing: 0.06em;
+}
+
+:is(.loop-ui, body) .note-dialog .note-inference-select,
+:is(.loop-ui, body) .note-dialog .note-inference-chip {
+  font-size: 13px;
+  color: var(--pm-ink-soft);
+  background: rgba(255, 252, 244, 0.8);
+  border-color: rgba(150, 116, 58, 0.5);
+}
+
+:is(.loop-ui, body) .note-dialog .note-inference-empty {
+  color: var(--pm-faint);
+  font-style: italic;
+  font-size: 13px;
+}
+
+:is(.loop-ui, body) .note-dialog .note-snapshot-heading h3 {
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) .note-dialog .note-snapshot-list > * {
+  background: rgba(255, 252, 244, 0.7);
+  border-color: rgba(160, 127, 66, 0.32);
+  color: var(--pm-ink-soft);
+}
+
+:is(.loop-ui, body) .note-dialog .note-free-text-label {
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--pm-muted);
+}
+
+:is(.loop-ui, body) .note-dialog .note-textarea {
+  font-family: var(--pm-serif);
+  font-size: 14px;
+  line-height: 1.9;
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0 29px,
+      rgba(160, 127, 66, 0.16) 29px 30px),
+    rgba(255, 252, 244, 0.7);
+  border: 1px solid rgba(150, 116, 58, 0.45);
+  color: var(--pm-ink);
+  caret-color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) .note-dialog .note-footer {
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--pm-muted);
+  border-top: 1px solid rgba(160, 127, 66, 0.3);
+  padding-top: 10px;
+}
+
+/* 计数原本继承深色主题的 --accent，在纸上只有 2:1 */
+:is(.loop-ui, body) .note-dialog #noteCount,
+:is(.loop-ui, body) .note-dialog #noteStatus {
+  color: var(--pm-rubric);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+/* 三个快捷入口退成边注，把实心按钮留给「关闭」 */
+:is(.loop-ui, body) .note-dialog .note-quick-actions .button {
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(160, 127, 66, 0.45);
+  border-radius: 0;
+  color: var(--pm-rubric);
+  letter-spacing: 0.12em;
+  min-height: 38px;
+}
+
+:is(.loop-ui, body) .note-dialog .note-quick-actions .button:hover {
+  background: rgba(255, 252, 244, 0.6);
+  border-bottom-color: var(--pm-gilt);
+  color: var(--pm-rubric-deep);
+}
+
+:is(.loop-ui, body) .note-dialog .tiny-link-button {
+  color: var(--pm-rubric);
+  border-bottom-color: rgba(138, 49, 56, 0.4);
+}
+
+/* 快捷推理（点角色卡打开） */
+:is(.loop-ui, body) .character-quick-note-dialog {
+  background-color: var(--pm-paper);
+  background-image:
+    var(--pm-grain),
+    linear-gradient(178deg, #fcf6e8, #f2e7d0 62%, #e9dbbf);
+  background-size: 172px 172px, auto;
+  background-repeat: repeat, no-repeat;
+  border-color: rgba(140, 104, 50, 0.85);
+  color: var(--pm-ink);
+}
+
+:is(.loop-ui, body) .character-quick-note-header {
+  background:
+    linear-gradient(180deg, rgba(255, 236, 206, 0.07), transparent 50%),
+    linear-gradient(180deg, #4c2529, #38181c);
+  color: #f7ebd5;
+  border: 1px solid rgba(201, 169, 97, 0.38);
+  border-radius: 1px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 236, 206, 0.12),
+    0 8px 18px -16px rgba(4, 3, 2, 0.9);
+}
+
+/* 顶上是朱红书眉带，不再压角饰；只在右下角放一枚卷草 */
+:is(.loop-ui, body) .character-quick-note-dialog::before {
+  content: none;
+}
+
+:is(.loop-ui, body) .character-quick-note-dialog::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  width: 40px;
+  height: 40px;
+  transform: rotate(180deg);
+  pointer-events: none;
+  background: var(--pm-corner) no-repeat center / contain;
+  opacity: 0.8;
+  z-index: 2;
+}
+
+/* 「快捷推理」原本是标题上方的眉标，改成同一行的版头小注，
+   免得读成一个假的 eyebrow 标签 */
+:is(.loop-ui, body) .character-quick-note-header > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+:is(.loop-ui, body) .character-quick-note-header h2 {
+  margin: 0;
+}
+
+:is(.loop-ui, body) .character-quick-note-header h2 {
+  color: #fbf0da;
+  font-size: 22px;
+  letter-spacing: 0.12em;
+}
+
+:is(.loop-ui, body) .character-quick-note-header span {
+  color: #d6bd93;
+  font-family: var(--pm-serif);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+}
+
+:is(.loop-ui, body) .character-quick-note-guide {
+  color: var(--pm-muted);
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+:is(.loop-ui, body) .character-quick-note-section {
+  background: transparent;
+  border: 1px solid rgba(160, 127, 66, 0.3);
+  border-radius: 2px;
+}
+
+:is(.loop-ui, body) .character-quick-note-section h3 {
+  font-size: 15px;
+  letter-spacing: 0.12em;
+  color: var(--pm-rubric);
+}
+
+:is(.loop-ui, body) .character-quick-note-choice {
+  font-family: var(--pm-serif);
+  font-size: 13px;
+  border: 1px solid rgba(150, 116, 58, 0.5);
+  border-radius: 2px;
+  background: rgba(255, 252, 244, 0.8);
+  color: var(--pm-ink-soft);
+}
+
+:is(.loop-ui, body) .character-quick-note-choice:hover {
+  border-color: var(--pm-gilt);
+}
+
+:is(.loop-ui, body) .character-quick-note-choice.is-possible {
+  background: #e4ece4;
+  border-color: #6d8a78;
+  color: #2f5042;
+}
+
+:is(.loop-ui, body) .character-quick-note-choice.is-excluded {
+  background: #eee1da;
+  border-color: #a8807a;
+  color: #6b3a34;
+}
+
+:is(.loop-ui, body) .character-quick-note-choice.is-suspected {
+  background: #f4ead0;
+  border-color: var(--pm-gilt);
+  color: #6a4c16;
+}
+
+:is(.loop-ui, body) .character-quick-note-text-section textarea {
+  background: rgba(255, 252, 244, 0.8);
+  border: 1px solid rgba(150, 116, 58, 0.45);
+  color: var(--pm-ink);
+}
+
+:is(.loop-ui, body) .character-quick-note-actions span {
+  color: var(--pm-muted);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+}
+
+/* 轮限牌 / 通用工具弹窗 */
+:is(.loop-ui, body) .loop-limit-dialog,
+:is(.loop-ui, body) .utility-dialog {
+  background-color: var(--pm-paper);
+  background-image: var(--pm-grain), linear-gradient(178deg, #fbf5e7, #eadcc0);
+  background-size: 172px 172px, auto;
+  background-repeat: repeat, no-repeat;
+}
+
+:is(.loop-ui, body) .loop-limit-dialog .loop-limit-list {
+  border-top-color: rgba(160, 127, 66, 0.3);
+}
+
+:is(.loop-ui, body) .loop-limit-dialog .loop-limit-list > * {
+  background: rgba(255, 252, 244, 0.7);
+  border-color: rgba(160, 127, 66, 0.32);
+  color: var(--pm-ink-soft);
+}
+
+:is(.loop-ui, body) .loop-limit-dialog .loop-limit-list .empty {
+  color: var(--pm-faint);
+  font-size: 13px;
+}
+
+/* 角色大图 */
+:is(.loop-ui, body) .char-card-lightbox {
+  background:
+    radial-gradient(ellipse 80% 70% at 50% 40%, rgba(32, 22, 14, 0.55), rgba(8, 6, 4, 0.86) 78%);
+}
+
+:is(.loop-ui, body) .char-card-lightbox-panel {
+  border: 1px solid rgba(150, 116, 58, 0.8);
+  border-radius: 2px;
+  background: linear-gradient(178deg, #fbf5e7, #eadcc0);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 252, 244, 0.6),
+    0 30px 70px -30px rgba(4, 3, 2, 0.95);
+  color: var(--pm-ink);
+}
+
+:is(.loop-ui, body) .char-card-lightbox-title strong {
+  color: var(--pm-rubric);
+  letter-spacing: 0.12em;
+  font-size: 17px;
+}
+
+:is(.loop-ui, body) .char-card-lightbox-title button {
+  border: 1px solid rgba(150, 116, 58, 0.55);
+  border-radius: 2px;
+  background: rgba(255, 252, 244, 0.7);
+  color: var(--pm-ink);
+  font-size: 14px;
+}
+
+/* --- 12. 焦点、动效、减弱动效 ------------------------------------------ */
+:is(.loop-ui, body) :is(button, a, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--pm-gilt-lit);
+  outline-offset: 3px;
+}
+
+:is(.loop-ui, body) .side-panel :is(button, select, textarea):focus-visible,
+:is(.loop-ui, body) .report-panel :is(button, select):focus-visible,
+:is(.loop-ui, body) .choice-dialog :is(button, select, input, textarea):focus-visible {
+  outline: 2px solid var(--pm-rubric);
+  outline-offset: 1px;
+}
+
+/* 书翻开的那一下：只看得出“落定”，看不出动画 */
+@keyframes pm-book-open {
+  from { opacity: 0.55; transform: translateY(6px) scale(0.998); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes pm-dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.992); }
+  to { opacity: 1; transform: none; }
+}
+
+:is(.loop-ui, body) .play-area {
+  animation: pm-book-open 0.62s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+:is(.loop-ui, body) .choice-dialog-overlay.visible .choice-dialog {
+  animation: pm-dialog-in 0.26s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.loop-ui, body) .play-area,
+  :is(.loop-ui, body) .choice-dialog-overlay.visible .choice-dialog {
+    animation: none;
+  }
+
+  :is(.loop-ui, body) * {
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* --- 13. 窄屏：只保证纸色与可读性，抽屉结构不动 ------------------------ */
+@media (max-width: 1000px) {
+  :is(.loop-ui, body) .mobile-drawer-panel {
+    background-color: var(--pm-paper) !important;
+    color: var(--pm-ink) !important;
+  }
+
+  :is(.loop-ui, body) #handPanel.mobile-drawer-panel {
+    background-color: var(--pm-paper) !important;
+    color: var(--pm-ink) !important;
+  }
+
+  :is(.loop-ui, body) #handPanel .action-card {
+    flex: 0 0 64px;
+  }
+
+  :is(.loop-ui, body) .header-title h1 {
+    font-size: 22px;
+    letter-spacing: 0.12em;
+  }
+}
+
+/* --- 14. 收尾：把能控的间距对齐到 4px 网格 ----------------------------- */
+:is(.loop-ui, body) header {
+  padding: 12px 24px !important;
+  gap: 12px 24px;
+}
+
+:is(.loop-ui, body) .side-panel .sidebar-utility-button,
+:is(.loop-ui, body) .side-panel > .sidebar-utility-button {
+  padding: 8px 12px;
+  min-height: 40px;
+}
+
+:is(.loop-ui, body) #musicPlayer {
+  gap: 8px;
+  margin-left: auto;
+}
+
+:is(.loop-ui, body) .toolbar {
+  gap: 8px;
+}

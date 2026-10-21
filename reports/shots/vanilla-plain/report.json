@@ -1,0 +1,33 @@
+[
+  {
+    "file": "page.png",
+    "state": null,
+    "size": "1440x900",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [
+      "图片没加载出来："
+    ],
+    "lint": [
+      {
+        "rule": "nestedCards",
+        "label": "卡片里套卡片",
+        "count": 8,
+        "examples": [
+          "div.note-inference-section「身份推测 住院患者 添加候选 关键人物 杀手 主」（外层 section#desktopNotePanel.desktop-note-panel）",
+          "div.note-inference-section「事件当事人推测 第1日 邪气污染 添加候选 住院」（外层 section#desktopNotePanel.desktop-note-panel）",
+          "article.location「医院」（外层 section.board-section）"
+        ]
+      },
+      {
+        "rule": "contrastLow",
+        "label": "文字对比度不达标（正文低于 4.5:1，大字低于 3:1）",
+        "count": 2,
+        "examples": [
+          "span「新建对战」（1.73:1）",
+          "small「BTX-45」（1.58:1）"
+        ]
+      }
+    ]
+  }
+]
