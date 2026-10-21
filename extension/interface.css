@@ -1361,3 +1361,36 @@ body.loop-ui {
 .loop-ui .token-bank img {
   filter: drop-shadow(0 1px 2px rgba(12, 8, 6, .35));
 }
+
+/* ===== v3.2.4 抽屉/窄屏也不出现「深底 + 深字」=====
+   窄屏或高缩放下，对局笔记等面板会被装进 .mobile-drawer-panel（原站深色底）。
+   GT 的浅色文字变量一旦落进深色抽屉，标签就消失了。这里把抽屉本身改成羊皮纸，
+   并给笔记面板一个显式纸底作为兜底。 */
+
+.loop-ui .desktop-note-panel {
+  background: var(--loop-paper);
+}
+
+@media (max-width: 1000px) {
+  .loop-ui .mobile-drawer-panel {
+    background: linear-gradient(180deg, #efe4cc, #e6d8bd) !important;
+    border: 1px solid rgba(164, 135, 79, .55) !important;
+    border-radius: 3px !important;
+    color: var(--loop-ink) !important;
+    box-shadow: 0 -10px 30px rgba(12, 8, 6, .45) !important;
+  }
+
+  .loop-ui .mobile-drawer-panel :is(h1, h2, h3, h4, strong, b, p, li, span, label, small) {
+    color: var(--loop-ink);
+  }
+
+  .loop-ui .mobile-drawer-panel :is(.status, .desktop-note-scope, .character-note-entry-guide, .meta, .empty) {
+    color: var(--loop-muted);
+  }
+
+  .loop-ui .mobile-drawer-panel :is(input, select, textarea) {
+    background: #f3ead6;
+    border-color: #b29c74;
+    color: var(--loop-ink);
+  }
+}
